@@ -85,7 +85,10 @@ app.MapGet("/", async (HttpContext ctx) =>
     return new
     {
         ctx.User,
-        access_token = await ctx.GetTokenAsync("access_token")
+        access_token = await ctx.GetTokenAsync("access_token"),
+        login = "/login",
+        logout = "/logout",
+        logout_cookies = "/logout-cookies",
     };
 });
 

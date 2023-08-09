@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MockIdServer", "MockIdServer\MockIdServer.csproj", "{AD8CBE42-802B-4D2C-A9B0-B4BF9A07BAA9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MockServer", "MockServer\MockServer.csproj", "{AD8CBE42-802B-4D2C-A9B0-B4BF9A07BAA9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{C113B086-BBAB-4828-A285-2CAA1EC9DB38}"
 EndProject

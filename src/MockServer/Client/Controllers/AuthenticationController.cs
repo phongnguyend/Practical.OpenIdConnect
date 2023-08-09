@@ -12,7 +12,7 @@ namespace ReverseProxy.Yarp.Controllers
         {
             if (HttpContext.User.Identity?.IsAuthenticated ?? false)
             {
-                Response.Redirect(Url.Content("~/").ToString());
+                Response.Redirect("/");
             }
             else
             {
@@ -32,7 +32,6 @@ namespace ReverseProxy.Yarp.Controllers
         public async Task LogoutAsync()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignOutAsync("OAuth");
             //await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
         }
 
@@ -40,6 +39,7 @@ namespace ReverseProxy.Yarp.Controllers
         public async Task LogoutCookiesAsync()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            Response.Redirect("/");
         }
     }
 }
