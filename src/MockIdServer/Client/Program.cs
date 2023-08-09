@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
@@ -79,9 +80,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/", (HttpContext ctx) =>
+app.MapGet("/", async (HttpContext ctx) =>
 {
-    return ctx.User;
+    return new
+    {
+        ctx.User,
+        access_token = await ctx.GetTokenAsync("access_token")
+    };
 });
 
 app.Run();
