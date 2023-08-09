@@ -35,24 +35,35 @@ app.UseAuthorization();
 
 var dic = new Dictionary<string, AuthorizeRequest>();
 
-app.MapGet("/account/login", async (HttpContext httpContext, [FromQuery] string returnUrl) =>
+app.MapGet("/account/login", (HttpContext httpContext, [FromQuery] string returnUrl) =>
+{
+    return Results.Text(@$"
+    <form action=""/account/login?returnUrl={HttpUtility.UrlEncode(returnUrl)}"" method=""POST"">
+      <label for=""username"">Username:</label>
+      <input type=""text"" id=""username"" name=""username"" value=""phong@gmail.com""><br><br>
+      <input type=""submit"" value=""Login"">
+    </form>
+    ", "text/html");
+});
+
+app.MapPost("/account/login", async (HttpContext httpContext, [FromQuery] string returnUrl) =>
 {
     // https://learn.microsoft.com/en-us/aspnet/core/security/authentication/cookie?view=aspnetcore-7.0
 
     var claims = new List<Claim>
     {
-        new Claim(ClaimTypes.Name,"Phong"),
+        new Claim(ClaimTypes.Name, "Phong"),
         new Claim("FullName", "Phong Nguyen"),
         new Claim(ClaimTypes.Role, "Administrator"),
     };
 
     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
+    var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
     var authProperties = new AuthenticationProperties
     {
     };
 
-    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
+    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal, authProperties);
     return Results.Redirect(returnUrl);
 });
 

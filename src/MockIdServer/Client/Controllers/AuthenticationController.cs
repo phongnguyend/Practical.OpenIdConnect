@@ -35,5 +35,11 @@ namespace ReverseProxy.Yarp.Controllers
             await HttpContext.SignOutAsync("OAuth");
             //await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
         }
+
+        [HttpGet("/logout-cookies")]
+        public async Task LogoutCookiesAsync()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        }
     }
 }

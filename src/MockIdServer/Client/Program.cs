@@ -79,4 +79,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.MapGet("/", (HttpContext ctx) =>
+{
+    return ctx.User;
+});
+
 app.Run();
