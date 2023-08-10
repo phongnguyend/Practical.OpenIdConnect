@@ -104,9 +104,25 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
         Expiry = DateTime.UtcNow.AddMinutes(10)
     };
 
-    return Results.Redirect($"{redirectUri}?code={code}&state={state}&iss={HttpUtility.UrlEncode("https://localhost:44350")}");
+    var returnUrl = $"{redirectUri}?code={code}&state={state}&iss={HttpUtility.UrlEncode("https://localhost:44350")}";
+
+    return Results.Redirect($"/oauth/consent?returnUrl={HttpUtility.UrlEncode(returnUrl)}");
 
 }).RequireAuthorization();
+
+app.MapGet("/oauth/consent", (HttpContext httpContext, [FromQuery] string returnUrl) =>
+{
+    return Results.Text(@$"
+    <form action=""/oauth/consent?returnUrl={HttpUtility.UrlEncode(returnUrl)}"" method=""POST"">
+      <input type=""submit"" value=""Accept"">
+    </form>
+    ", "text/html");
+});
+
+app.MapPost("/oauth/consent", (HttpContext httpContext, [FromQuery] string returnUrl) =>
+{
+    return Results.Redirect(returnUrl);
+});
 
 app.MapPost("/oauth/token", (HttpRequest request) =>
 {
@@ -119,6 +135,14 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         CodeVerifier = request.Form["code_verifier"],
         RedirectUri = request.Form["redirect_uri"],
     };
+
+    if (string.IsNullOrEmpty(tokenRequest.Code)
+        || !dic.ContainsKey(tokenRequest.Code)
+        || string.IsNullOrEmpty(tokenRequest.CodeVerifier)
+        )
+    {
+        return Results.BadRequest();
+    }
 
     var authRequest = dic[tokenRequest.Code];
 
@@ -168,34 +192,34 @@ static JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
 
 class AuthorizeRequest
 {
-    public string ResponseType { get; set; }
+    public string? ResponseType { get; set; }
 
-    public string ClientId { get; set; }
+    public string? ClientId { get; set; }
 
-    public string CodeChallenge { get; set; }
+    public string? CodeChallenge { get; set; }
 
-    public string CodeChallengeMethod { get; set; }
+    public string? CodeChallengeMethod { get; set; }
 
-    public string RedirectUri { get; set; }
+    public string? RedirectUri { get; set; }
 
-    public string Scope { get; set; }
+    public string? Scope { get; set; }
 
-    public string State { get; set; }
+    public string? State { get; set; }
 
     public DateTime Expiry { get; set; }
 }
 
 public class TokenRequest
 {
-    public string ClientId { get; set; }
+    public string? ClientId { get; set; }
 
-    public string ClientSecret { get; set; }
+    public string? ClientSecret { get; set; }
 
-    public string GrantType { get; set; }
+    public string? GrantType { get; set; }
 
-    public string Code { get; set; }
+    public string? Code { get; set; }
 
-    public string RedirectUri { get; set; }
+    public string? RedirectUri { get; set; }
 
-    public string CodeVerifier { get; set; }
+    public string? CodeVerifier { get; set; }
 }
