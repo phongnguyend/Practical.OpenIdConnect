@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using MockServer.Extensions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Web;
 
@@ -72,12 +74,24 @@ app.MapGet("/.well-known/openid-configuration", () =>
     return Results.Ok(new
     {
         issuer = "https://localhost:44350",
+        jwks_uri = "https://localhost:44350/.well-known/jwks",
         authorization_endpoint = "https://localhost:44350/oauth/authorize",
         token_endpoint = "https://localhost:44350/oauth/token",
         response_types_supported = new[] { "code", "token" },
         id_token_signing_alg_values_supported = new[] { "RS256" },
         userinfo_endpoint = "https://localhost:44350/oauth/userinfo"
     });
+});
+
+app.MapGet("/.well-known/jwks", () =>
+{
+    var x509Cert = new X509Certificate2("Certs/classifiedads.identityserver.pfx", "password1234");
+
+    return new
+    {
+        keys = new[] { x509Cert.GetRsaPublicJwk() },
+    };
+
 });
 
 app.MapGet("/oauth/authorize", (HttpRequest request) =>
@@ -89,6 +103,7 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
     request.Query.TryGetValue("redirect_uri", out var redirectUri);
     request.Query.TryGetValue("scope", out var scope);
     request.Query.TryGetValue("state", out var state);
+    request.Query.TryGetValue("nonce", out var nonce);
 
     var code = Guid.NewGuid().ToString();
 
@@ -101,6 +116,7 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
         RedirectUri = redirectUri,
         Scope = scope,
         State = state,
+        Nonce = nonce,
         Expiry = DateTime.UtcNow.AddMinutes(10)
     };
 
@@ -157,37 +173,75 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
     {
         new Claim(ClaimTypes.Name, "phong@gmail.com"),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
+        new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.Now).ToString()),
+        new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
     };
 
-    var token = CreateToken(authClaims, DateTime.Now.AddMinutes(15));
-
-    return Results.Ok(new
+    if (!string.IsNullOrEmpty(authRequest.Nonce))
     {
-        access_token = new JwtSecurityTokenHandler().WriteToken(token),
+        authClaims.Add(new Claim(JwtRegisteredClaimNames.Nonce, authRequest.Nonce));
+    }
+
+    var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), "WebAPI");
+    var idToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), authRequest.ClientId);
+
+    var response = new
+    {
+        access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
         token_type = "Bearer",
-        id_token = Guid.NewGuid().ToString(),
-    });
+        id_token = new JwtSecurityTokenHandler().WriteToken(idToken),
+    };
+
+    return Results.Ok(response);
+});
+
+app.MapGet("/oauth/userinfo", (HttpRequest request) =>
+{
+    var response = new Dictionary<string, object>
+    {
+        {"sub", "phong@gmail.com"},
+        {"name", "Phong Nguyen" },
+        {"email", "phong @gmail.com"}
+    };
+
+    return Results.Ok(response);
 });
 
 app.MapPost("/oauth/userinfo", (HttpRequest request) =>
 {
+    var response = new Dictionary<string, object>
+    {
+        {"sub", "phong@gmail.com"},
+        {"name", "Phong Nguyen" },
+        {"email", "phong @gmail.com"}
+    };
 
+    return Results.Ok(response);
 });
 
 
 app.Run();
 
-static JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
+static JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires, string audience)
 {
     var token = new JwtSecurityToken(
         issuer: "https://localhost:44350",
-        audience: "xxx",
+        audience: audience,
         expires: expires,
         claims: authClaims,
-        signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes("secretsecretsecretsecretsecretsecret")), SecurityAlgorithms.HmacSha256));
+        signingCredentials: GetSigningCredentials());
 
     return token;
+}
+
+static SigningCredentials GetSigningCredentials()
+{
+    return new SigningCredentials(GetSigningKey(), SecurityAlgorithms.RsaSha256);
+}
+
+static SecurityKey GetSigningKey()
+{
+    return new X509SecurityKey(new X509Certificate2("Certs/classifiedads.identityserver.pfx", "password1234"));
 }
 
 class AuthorizeRequest
@@ -205,6 +259,8 @@ class AuthorizeRequest
     public string? Scope { get; set; }
 
     public string? State { get; set; }
+
+    public string? Nonce { get; set; }
 
     public DateTime Expiry { get; set; }
 }

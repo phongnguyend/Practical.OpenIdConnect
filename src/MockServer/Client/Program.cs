@@ -12,8 +12,8 @@ services.AddControllers();
 services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "OAuth";
-    //options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    //options.DefaultChallengeScheme = "OAuth";
+    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
@@ -24,7 +24,7 @@ services.AddAuthentication(options =>
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.AuthorizationEndpoint = "https://localhost:44350/oauth/authorize";
     options.TokenEndpoint = "https://localhost:44350/oauth/token";
-    options.CallbackPath = "/signin-oidc";
+    options.CallbackPath = "/signin-oauth";
     options.UsePkce = true;
     options.ClientId = "MyClientId";
     options.ClientSecret = "MyClientSecret";
@@ -53,6 +53,7 @@ services.AddAuthentication(options =>
     options.SaveTokens = true;
     options.GetClaimsFromUserInfoEndpoint = true;
     options.RequireHttpsMetadata = true;
+    options.ResponseMode = "query";
 
     options.Events.OnTicketReceived = (ticketContext) =>
     {
@@ -82,9 +83,13 @@ app.MapControllers();
 
 app.MapGet("/", async (HttpContext ctx) =>
 {
+    var user = ctx.User;
+
     return new
     {
-        ctx.User,
+        isAuthenticated = user.Identity.IsAuthenticated,
+        authenticationType = user.Identity.AuthenticationType,
+        claims = user.Claims.Select(x => new { x.Type, x.Value }),
         access_token = await ctx.GetTokenAsync("access_token"),
         login = "/login",
         logout = "/logout",

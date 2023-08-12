@@ -16,15 +16,15 @@ namespace ReverseProxy.Yarp.Controllers
             }
             else
             {
-                await HttpContext.ChallengeAsync("OAuth", new AuthenticationProperties
-                {
-                    RedirectUri = Url.IsLocalUrl(returnUrl) ? returnUrl : "/"
-                });
-
-                //await HttpContext.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties
+                //await HttpContext.ChallengeAsync("OAuth", new AuthenticationProperties
                 //{
                 //    RedirectUri = Url.IsLocalUrl(returnUrl) ? returnUrl : "/"
                 //});
+
+                await HttpContext.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties
+                {
+                    RedirectUri = Url.IsLocalUrl(returnUrl) ? returnUrl : "/"
+                });
             }
         }
 
