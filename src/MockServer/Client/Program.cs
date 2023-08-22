@@ -1,6 +1,8 @@
+using IdentityModel.Client;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -63,6 +65,8 @@ services.AddAuthentication(options =>
 
 services.AddAuthorization();
 
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -97,6 +101,27 @@ app.MapGet("/", async (HttpContext ctx) =>
         logout = "/logout",
         logout_cookies = "/logout-cookies",
     };
+});
+
+app.MapGet("/refresh-token", async (IHttpClientFactory httpClientFactory, HttpContext ctx) =>
+{
+    var httpClient = httpClientFactory.CreateClient();
+    var metaDataResponse = await httpClient.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
+    {
+        Address = "https://localhost:44350",
+        Policy = { RequireHttps = true },
+    });
+
+    var refreshToken = await ctx.GetTokenAsync(OpenIdConnectParameterNames.RefreshToken);
+    var response = await httpClient.RequestRefreshTokenAsync(new RefreshTokenRequest
+    {
+        Address = metaDataResponse.TokenEndpoint,
+        ClientId = "MyClientId",
+        ClientSecret = "MyClientSecret",
+        RefreshToken = refreshToken,
+    });
+
+    return response;
 });
 
 app.Run();

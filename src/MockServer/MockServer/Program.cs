@@ -143,34 +143,38 @@ app.MapPost("/oauth/consent", (HttpContext httpContext, [FromQuery] string retur
 
 app.MapPost("/oauth/token", (HttpRequest request) =>
 {
-    var tokenRequest = new TokenRequest
+    var grantType = request.Form["grant_type"];
+
+    if (grantType == "authorization_code")
     {
-        ClientId = request.Form["client_id"],
-        ClientSecret = request.Form["client_secret"],
-        GrantType = request.Form["grant_type"],
-        Code = request.Form["code"],
-        CodeVerifier = request.Form["code_verifier"],
-        RedirectUri = request.Form["redirect_uri"],
-    };
+        var tokenRequest = new TokenRequest
+        {
+            ClientId = request.Form["client_id"],
+            ClientSecret = request.Form["client_secret"],
+            GrantType = request.Form["grant_type"],
+            Code = request.Form["code"],
+            CodeVerifier = request.Form["code_verifier"],
+            RedirectUri = request.Form["redirect_uri"],
+        };
 
-    if (string.IsNullOrEmpty(tokenRequest.Code)
-        || !authorizeRequests.ContainsKey(tokenRequest.Code)
-        || string.IsNullOrEmpty(tokenRequest.CodeVerifier)
-        )
-    {
-        return Results.BadRequest();
-    }
+        if (string.IsNullOrEmpty(tokenRequest.Code)
+            || !authorizeRequests.ContainsKey(tokenRequest.Code)
+            || string.IsNullOrEmpty(tokenRequest.CodeVerifier)
+            )
+        {
+            return Results.BadRequest();
+        }
 
-    var authRequest = authorizeRequests[tokenRequest.Code];
+        var authRequest = authorizeRequests[tokenRequest.Code];
 
-    // verify code
-    using var sha256 = SHA256.Create();
-    if (authRequest.CodeChallenge != Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(tokenRequest.CodeVerifier))))
-    {
-        return Results.BadRequest();
-    }
+        // verify code
+        using var sha256 = SHA256.Create();
+        if (authRequest.CodeChallenge != Base64UrlEncoder.Encode(sha256.ComputeHash(Encoding.ASCII.GetBytes(tokenRequest.CodeVerifier))))
+        {
+            return Results.BadRequest();
+        }
 
-    var authClaims = new List<Claim>
+        var authClaims = new List<Claim>
     {
         new Claim(ClaimTypes.Name, "phong@gmail.com"),
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -178,33 +182,65 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
     };
 
-    if (!string.IsNullOrEmpty(authRequest.Nonce))
-    {
-        authClaims.Add(new Claim(JwtRegisteredClaimNames.Nonce, authRequest.Nonce));
-    }
-
-    var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), "WebAPI");
-    var idToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), authRequest.ClientId);
-
-    string? refreshToken = null;
-    if (authRequest.Scope?.Split(' ')?.Contains("offline_access") ?? false)
-    {
-        refreshToken = Guid.NewGuid().ToString();
-        refreshTokens[refreshToken] = new RefreshToken
+        if (!string.IsNullOrEmpty(authRequest.Nonce))
         {
-            ClientId = authRequest.ClientId,
+            authClaims.Add(new Claim(JwtRegisteredClaimNames.Nonce, authRequest.Nonce));
+        }
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), "WebAPI");
+        var idToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), authRequest.ClientId);
+
+        string? refreshToken = null;
+        if (authRequest.Scope?.Split(' ')?.Contains("offline_access") ?? false)
+        {
+            refreshToken = Guid.NewGuid().ToString();
+            refreshTokens[refreshToken] = new RefreshToken
+            {
+                ClientId = authRequest.ClientId,
+            };
+        }
+
+        var response = new
+        {
+            access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
+            token_type = "Bearer",
+            id_token = new JwtSecurityTokenHandler().WriteToken(idToken),
+            refresh_token = refreshToken,
         };
+
+        return Results.Ok(response);
+    }
+    else if (grantType == "client_credentials")
+    {
+        // TODO:
+        return Results.BadRequest(new
+        {
+            error = "unsupported_grant_type"
+        });
+    }
+    else if (grantType == "password")
+    {
+        // TODO:
+        return Results.BadRequest(new
+        {
+            error = "unsupported_grant_type"
+        });
+    }
+    else if (grantType == "refresh_token")
+    {
+        var refreshToken = request.Form["refresh_token"];
+
+        // TODO:
+        return Results.BadRequest(new
+        {
+            error = "unsupported_grant_type"
+        });
     }
 
-    var response = new
+    return Results.BadRequest(new
     {
-        access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
-        token_type = "Bearer",
-        id_token = new JwtSecurityTokenHandler().WriteToken(idToken),
-        refresh_token = refreshToken,
-    };
-
-    return Results.Ok(response);
+        error = "unsupported_grant_type"
+    });
 });
 
 app.MapGet("/oauth/userinfo", (HttpRequest request) =>
