@@ -87,10 +87,12 @@ app.MapGet("/", async (HttpContext ctx) =>
 
     return new
     {
-        isAuthenticated = user.Identity.IsAuthenticated,
-        authenticationType = user.Identity.AuthenticationType,
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false,
+        authenticationType = user.Identity?.AuthenticationType,
         claims = user.Claims.Select(x => new { x.Type, x.Value }),
+        id_token = await ctx.GetTokenAsync("id_token"),
         access_token = await ctx.GetTokenAsync("access_token"),
+        refresh_token = await ctx.GetTokenAsync("refresh_token"),
         login = "/login",
         logout = "/logout",
         logout_cookies = "/logout-cookies",

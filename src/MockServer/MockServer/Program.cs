@@ -35,7 +35,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-var dic = new Dictionary<string, AuthorizeRequest>();
+var authorizeRequests = new Dictionary<string, AuthorizeRequest>();
+var refreshTokens = new Dictionary<string, RefreshToken>();
 
 app.MapGet("/account/login", (HttpContext httpContext, [FromQuery] string returnUrl) =>
 {
@@ -107,7 +108,7 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
 
     var code = Guid.NewGuid().ToString();
 
-    dic[code] = new AuthorizeRequest
+    authorizeRequests[code] = new AuthorizeRequest
     {
         ResponseType = responseType,
         ClientId = clientId,
@@ -153,14 +154,14 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
     };
 
     if (string.IsNullOrEmpty(tokenRequest.Code)
-        || !dic.ContainsKey(tokenRequest.Code)
+        || !authorizeRequests.ContainsKey(tokenRequest.Code)
         || string.IsNullOrEmpty(tokenRequest.CodeVerifier)
         )
     {
         return Results.BadRequest();
     }
 
-    var authRequest = dic[tokenRequest.Code];
+    var authRequest = authorizeRequests[tokenRequest.Code];
 
     // verify code
     using var sha256 = SHA256.Create();
@@ -185,11 +186,22 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
     var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), "WebAPI");
     var idToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), authRequest.ClientId);
 
+    string? refreshToken = null;
+    if (authRequest.Scope?.Split(' ')?.Contains("offline_access") ?? false)
+    {
+        refreshToken = Guid.NewGuid().ToString();
+        refreshTokens[refreshToken] = new RefreshToken
+        {
+            ClientId = authRequest.ClientId,
+        };
+    }
+
     var response = new
     {
         access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
         token_type = "Bearer",
         id_token = new JwtSecurityTokenHandler().WriteToken(idToken),
+        refresh_token = refreshToken,
     };
 
     return Results.Ok(response);
@@ -278,4 +290,9 @@ public class TokenRequest
     public string? RedirectUri { get; set; }
 
     public string? CodeVerifier { get; set; }
+}
+
+public class RefreshToken
+{
+    public string? ClientId { get; set; }
 }
