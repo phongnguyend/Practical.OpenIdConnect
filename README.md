@@ -1,5 +1,9 @@
 ###
-Simple mock OAuth Server (not necessarily compliant with OAuth standard) to debug how Authorization Code flow with PKCE work.
+Simple OAuth 2.0 & OIDC Mock Server to debug how Flows work:
+- Authorization Code Flow with PKCE.
+- Client Credentials Flow.
+- Resource Owner Password Credentials Flow.
+- Refresh Token Flow.
 
 ###
-For Resource Owner Password flow and Client Credentials flow please refer https://github.com/phongnguyend/Practical.Jwt
+For JWT refer https://github.com/phongnguyend/Practical.Jwt
