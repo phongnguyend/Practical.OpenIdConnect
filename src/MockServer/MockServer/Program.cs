@@ -214,6 +214,16 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
     }
     else if (grantType == "client_credentials")
     {
+        string? clientId;
+        string? clientSecret;
+        if (!request.TryGetBasicCredentials(out clientId, out clientSecret))
+        {
+            clientId = request.Form["client_id"];
+            clientSecret = request.Form["client_secret"];
+        }
+
+        var audience = request.Form["audience"];
+
         // TODO:
         return Results.BadRequest(new
         {
