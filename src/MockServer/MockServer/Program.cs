@@ -232,11 +232,49 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
     }
     else if (grantType == "password")
     {
-        // TODO:
-        return Results.BadRequest(new
+        string? clientId;
+        string? clientSecret;
+        if (!request.TryGetBasicCredentials(out clientId, out clientSecret))
         {
-            error = "unsupported_grant_type"
-        });
+            clientId = request.Form["client_id"];
+            clientSecret = request.Form["client_secret"];
+        }
+
+        var username = request.Form["username"];
+        var password = request.Form["password"];
+        var audience = request.Form["audience"];
+        var scope = request.Form["scope"].ToString();
+
+        var authClaims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, "phong@gmail.com"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.Now).ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
+        };
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), audience!);
+
+        string? refreshToken = null;
+        if (scope?.Split(' ')?.Contains("offline_access") ?? false)
+        {
+            refreshToken = Guid.NewGuid().ToString();
+            refreshTokens[refreshToken] = new RefreshToken
+            {
+                ClientId = clientId,
+                Sub = "phong@gmail.com",
+                Audience = audience
+            };
+        }
+
+        var response = new
+        {
+            access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
+            token_type = "Bearer",
+            refresh_token = refreshToken,
+        };
+
+        return Results.Ok(response);
     }
     else if (grantType == "refresh_token")
     {
