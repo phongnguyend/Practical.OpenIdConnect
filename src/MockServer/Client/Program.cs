@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -100,6 +101,7 @@ app.MapGet("/", async (HttpContext ctx) =>
         login = "/login",
         logout = "/logout",
         logout_cookies = "/logout-cookies",
+        refresh_token_url = "/refresh-token"
     };
 });
 
@@ -121,7 +123,19 @@ app.MapGet("/refresh-token", async (IHttpClientFactory httpClientFactory, HttpCo
         RefreshToken = refreshToken,
     });
 
-    return response;
+    if (response.IsError)
+    {
+        return Results.BadRequest(response);
+    }
+
+    var auth = await ctx.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    auth.Properties.UpdateTokenValue(OpenIdConnectParameterNames.AccessToken, response.AccessToken);
+    auth.Properties.UpdateTokenValue(OpenIdConnectParameterNames.RefreshToken, response.RefreshToken);
+    var expiresAt = DateTime.UtcNow + TimeSpan.FromSeconds(response.ExpiresIn);
+    auth.Properties.UpdateTokenValue("expires_at", expiresAt.ToString("o", CultureInfo.InvariantCulture));
+    await ctx.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, auth.Principal, auth.Properties);
+
+    return Results.Redirect("/");
 });
 
 app.Run();

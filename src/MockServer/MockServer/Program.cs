@@ -175,12 +175,12 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         }
 
         var authClaims = new List<Claim>
-    {
-        new Claim(ClaimTypes.Name, "phong@gmail.com"),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.Now).ToString()),
-        new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
-    };
+        {
+            new Claim(ClaimTypes.Name, "phong@gmail.com"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.Now).ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
+        };
 
         if (!string.IsNullOrEmpty(authRequest.Nonce))
         {
@@ -197,6 +197,8 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             refreshTokens[refreshToken] = new RefreshToken
             {
                 ClientId = authRequest.ClientId,
+                Sub = "phong@gmail.com",
+                Audience = "WebAPI"
             };
         }
 
@@ -229,12 +231,53 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
     else if (grantType == "refresh_token")
     {
         var refreshToken = request.Form["refresh_token"];
-
-        // TODO:
-        return Results.BadRequest(new
+        string? clientId;
+        string? clientSecret;
+        if (!request.TryGetBasicCredentials(out clientId, out clientSecret))
         {
-            error = "unsupported_grant_type"
-        });
+            clientId = request.Form["client_id"];
+            clientSecret = request.Form["client_secret"];
+        }
+
+        if (string.IsNullOrEmpty(refreshToken) || !refreshTokens.ContainsKey(refreshToken!))
+        {
+            return Results.BadRequest(new
+            {
+                error = "invalid_refresh_token"
+            });
+        }
+
+        var refreshTokenRecord = refreshTokens[refreshToken!];
+
+        var authClaims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, "phong@gmail.com"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.Now).ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
+        };
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), refreshTokenRecord.Audience!);
+
+        string? newRefreshToken = Guid.NewGuid().ToString();
+
+        refreshTokens[newRefreshToken] = new RefreshToken
+        {
+            ClientId = refreshTokenRecord.ClientId,
+            Sub = refreshTokenRecord.Sub,
+            Audience = refreshTokenRecord.Audience!
+        };
+
+        refreshTokens.Remove(refreshToken!);
+
+        var response = new
+        {
+            access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
+            token_type = "Bearer",
+            refresh_token = newRefreshToken,
+        };
+
+        return Results.Ok(response);
     }
 
     return Results.BadRequest(new
@@ -331,4 +374,8 @@ public class TokenRequest
 public class RefreshToken
 {
     public string? ClientId { get; set; }
+
+    public required string Sub { get; set; }
+
+    public string? Audience { get; set; }
 }
