@@ -198,7 +198,10 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             {
                 ClientId = authRequest.ClientId,
                 Sub = "phong@gmail.com",
-                Audience = "WebAPI"
+                Audience = "WebAPI",
+                Scope = authRequest.Scope,
+                ExpirationDateTime = DateTimeOffset.Now.AddDays(1),
+                CreatedDateTime = DateTimeOffset.Now
             };
         }
 
@@ -275,7 +278,10 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             {
                 ClientId = clientId,
                 Sub = "phong@gmail.com",
-                Audience = audience
+                Audience = audience,
+                Scope = scope,
+                ExpirationDateTime = DateTimeOffset.Now.AddDays(1),
+                CreatedDateTime = DateTimeOffset.Now
             };
         }
 
@@ -325,7 +331,10 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             ClientId = refreshTokenRecord.ClientId,
             Sub = refreshTokenRecord.Sub,
-            Audience = refreshTokenRecord.Audience!
+            Audience = refreshTokenRecord.Audience!,
+            Scope = refreshTokenRecord.Scope,
+            ExpirationDateTime = DateTimeOffset.Now.AddDays(1),
+            CreatedDateTime = DateTimeOffset.Now
         };
 
         refreshTokens.Remove(refreshToken!);
@@ -438,4 +447,10 @@ public class RefreshToken
     public required string Sub { get; set; }
 
     public string? Audience { get; set; }
+
+    public string? Scope { get; set; }
+
+    public DateTimeOffset ExpirationDateTime { get; set; }
+
+    public DateTimeOffset CreatedDateTime { get; set; }
 }
