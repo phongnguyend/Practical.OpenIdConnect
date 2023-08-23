@@ -224,11 +224,23 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
 
         var audience = request.Form["audience"];
 
-        // TODO:
-        return Results.BadRequest(new
+        var authClaims = new List<Claim>
         {
-            error = "unsupported_grant_type"
-        });
+            new Claim(ClaimTypes.Name, "My Client Name"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(DateTime.Now).ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, clientId!),
+        };
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), audience!);
+
+        var response = new
+        {
+            access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
+            token_type = "Bearer"
+        };
+
+        return Results.Ok(response);
     }
     else if (grantType == "password")
     {
