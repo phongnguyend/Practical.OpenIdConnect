@@ -383,6 +383,14 @@ app.MapPost("/oauth/userinfo", (HttpRequest request) =>
     return Results.Ok(response);
 });
 
+app.MapGet("/internal/database", (HttpRequest request) =>
+{
+    return Results.Ok(new
+    {
+        authorizeRequests,
+        refreshTokens
+    });
+});
 
 app.Run();
 
