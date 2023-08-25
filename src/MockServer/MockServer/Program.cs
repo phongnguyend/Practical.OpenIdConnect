@@ -187,8 +187,10 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             authClaims.Add(new Claim(JwtRegisteredClaimNames.Nonce, authRequest.Nonce));
         }
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), "WebAPI");
-        var idToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), authRequest.ClientId);
+        var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), "WebAPI");
+        var idToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), authRequest.ClientId);
 
         string? refreshToken = null;
         if (authRequest.Scope?.Split(' ')?.Contains("offline_access") ?? false)
@@ -209,7 +211,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
-            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
+            expires_in = expiresIn - 10,
             id_token = new JwtSecurityTokenHandler().WriteToken(idToken),
             refresh_token = refreshToken,
         };
@@ -236,13 +238,15 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             new Claim(JwtRegisteredClaimNames.Sub, clientId!),
         };
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), audience!);
+        var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), audience!);
 
         var response = new
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
-            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
+            expires_in = expiresIn - 10,
         };
 
         return Results.Ok(response);
@@ -270,7 +274,9 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
         };
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), audience!);
+        var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
+        
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), audience!);
 
         string? refreshToken = null;
         if (scope?.Split(' ')?.Contains("offline_access") ?? false)
@@ -291,7 +297,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
-            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
+            expires_in = expiresIn - 10,
             refresh_token = refreshToken,
         };
 
@@ -326,7 +332,9 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             new Claim(JwtRegisteredClaimNames.Sub, "phong@gmail.com"),
         };
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddMinutes(15), refreshTokenRecord.Audience!);
+        var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
+
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), refreshTokenRecord.Audience!);
 
         string? newRefreshToken = Guid.NewGuid().ToString();
 
@@ -346,7 +354,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
-            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
+            expires_in = expiresIn - 10,
             refresh_token = newRefreshToken,
         };
 
