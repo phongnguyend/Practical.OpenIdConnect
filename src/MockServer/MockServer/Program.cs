@@ -209,6 +209,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
+            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
             id_token = new JwtSecurityTokenHandler().WriteToken(idToken),
             refresh_token = refreshToken,
         };
@@ -240,7 +241,8 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         var response = new
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
-            token_type = "Bearer"
+            token_type = "Bearer",
+            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
         };
 
         return Results.Ok(response);
@@ -289,6 +291,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
+            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
             refresh_token = refreshToken,
         };
 
@@ -343,6 +346,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         {
             access_token = new JwtSecurityTokenHandler().WriteToken(accessToken),
             token_type = "Bearer",
+            expires_in = TimeSpan.FromMinutes(15).TotalSeconds - 10,
             refresh_token = newRefreshToken,
         };
 
