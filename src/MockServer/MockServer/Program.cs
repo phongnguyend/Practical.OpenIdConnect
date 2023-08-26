@@ -90,7 +90,10 @@ app.MapGet("/.well-known/jwks", () =>
 
     return new
     {
-        keys = new[] { x509Cert.GetRsaPublicJwk() },
+        keys = new[]
+        {
+            JsonWebKeyConverter.ConvertFromRSASecurityKey(new RsaSecurityKey(x509Cert.GetRSAPublicKey()))
+        },
     };
 
 });
@@ -275,7 +278,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
         };
 
         var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
-        
+
         var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), audience!);
 
         string? refreshToken = null;

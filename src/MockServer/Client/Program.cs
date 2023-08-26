@@ -101,9 +101,21 @@ app.MapGet("/", async (HttpContext ctx) =>
         login = "/login",
         logout = "/logout",
         logout_cookies = "/logout-cookies",
-        refresh_token_url = "/refresh-token"
+        refresh_token_url = "/refresh-token",
+        call_api = "/call-api"
     };
 });
+
+app.MapGet("/call-api", async (IHttpClientFactory httpClientFactory, HttpContext ctx) =>
+{
+    var httpClient = httpClientFactory.CreateClient();
+    var accessToken = await ctx.GetTokenAsync("access_token");
+    httpClient.SetBearerToken(accessToken);
+    var apiEndpoint = "https://localhost:44369";
+    var response = await httpClient.GetAsync(apiEndpoint);
+    var text = await response.Content.ReadAsStringAsync();
+    return Results.Text(text, "application/json");
+}).RequireAuthorization();
 
 app.MapGet("/refresh-token", async (IHttpClientFactory httpClientFactory, HttpContext ctx) =>
 {
