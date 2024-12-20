@@ -86,7 +86,7 @@ app.MapGet("/.well-known/openid-configuration", () =>
 
 app.MapGet("/.well-known/jwks", () =>
 {
-    var x509Cert = new X509Certificate2("Certs/classifiedads.identityserver.pfx", "password1234");
+    var x509Cert = GetX509Certificate();
 
     return new
     {
@@ -424,7 +424,12 @@ static SigningCredentials GetSigningCredentials()
 
 static SecurityKey GetSigningKey()
 {
-    return new X509SecurityKey(new X509Certificate2("Certs/classifiedads.identityserver.pfx", "password1234"));
+    return new X509SecurityKey(GetX509Certificate());
+}
+
+static X509Certificate2 GetX509Certificate()
+{
+    return X509CertificateLoader.LoadPkcs12FromFile("Certs/Practical.OpenIdConnect.pfx", "password1234", X509KeyStorageFlags.EphemeralKeySet);
 }
 
 class AuthorizeRequest
