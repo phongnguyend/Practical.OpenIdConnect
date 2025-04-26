@@ -9,7 +9,7 @@ services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.Authority = "https://localhost:44350";
+    options.Authority = "https://localhost:7248";
     options.Audience = "WebAPI";
     options.RequireHttpsMetadata = true;
 });

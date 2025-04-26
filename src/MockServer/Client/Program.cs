@@ -25,8 +25,8 @@ services.AddAuthentication(options =>
 .AddOAuth("OAuth", options =>
 {
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.AuthorizationEndpoint = "https://localhost:44350/oauth/authorize";
-    options.TokenEndpoint = "https://localhost:44350/oauth/token";
+    options.AuthorizationEndpoint = "https://localhost:7248/oauth/authorize";
+    options.TokenEndpoint = "https://localhost:7248/oauth/token";
     options.CallbackPath = "/signin-oauth";
     options.UsePkce = true;
     options.ClientId = "MyClientId";
@@ -45,7 +45,7 @@ services.AddAuthentication(options =>
 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.Authority = "https://localhost:44350";
+    options.Authority = "https://localhost:7248";
     options.ClientId = "MyClientId";
     options.ClientSecret = "MyClientSecret";
     options.ResponseType = "code";
@@ -111,7 +111,7 @@ app.MapGet("/call-api", async (IHttpClientFactory httpClientFactory, HttpContext
     var httpClient = httpClientFactory.CreateClient();
     var accessToken = await ctx.GetTokenAsync("access_token");
     httpClient.SetBearerToken(accessToken);
-    var apiEndpoint = "https://localhost:44369";
+    var apiEndpoint = "https://localhost:7208";
     var response = await httpClient.GetAsync(apiEndpoint);
     var text = await response.Content.ReadAsStringAsync();
     return Results.Text(text, "application/json");
@@ -122,7 +122,7 @@ app.MapGet("/refresh-token", async (IHttpClientFactory httpClientFactory, HttpCo
     var httpClient = httpClientFactory.CreateClient();
     var metaDataResponse = await httpClient.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
     {
-        Address = "https://localhost:44350",
+        Address = "https://localhost:7248",
         Policy = { RequireHttps = true },
     });
 

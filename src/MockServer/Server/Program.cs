@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using MockServer.Extensions;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection.Metadata;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -74,25 +76,35 @@ app.MapGet("/.well-known/openid-configuration", () =>
 {
     return Results.Ok(new
     {
-        issuer = "https://localhost:44350",
-        jwks_uri = "https://localhost:44350/.well-known/jwks",
-        authorization_endpoint = "https://localhost:44350/oauth/authorize",
-        token_endpoint = "https://localhost:44350/oauth/token",
+        issuer = "https://localhost:7248",
+        jwks_uri = "https://localhost:7248/.well-known/jwks",
+        authorization_endpoint = "https://localhost:7248/oauth/authorize",
+        token_endpoint = "https://localhost:7248/oauth/token",
         response_types_supported = new[] { "code", "token" },
         id_token_signing_alg_values_supported = new[] { "RS256" },
-        userinfo_endpoint = "https://localhost:44350/oauth/userinfo"
+        userinfo_endpoint = "https://localhost:7248/oauth/userinfo"
     });
 });
 
 app.MapGet("/.well-known/jwks", () =>
 {
     var x509Cert = GetX509Certificate();
+    var rsaSercutiryKey = new RsaSecurityKey(x509Cert.GetRSAPublicKey());
+    var parameters = rsaSercutiryKey.Rsa.ExportParameters(false);
 
     return new
     {
         keys = new[]
         {
-            JsonWebKeyConverter.ConvertFromRSASecurityKey(new RsaSecurityKey(x509Cert.GetRSAPublicKey()))
+            //JsonWebKeyConverter.ConvertFromRSASecurityKey(rsaSercutiryKey),
+            new
+            {
+                kty = "RSA",
+                use = "sig",
+                kid = x509Cert.Thumbprint,
+                n = Base64UrlEncoder.Encode(parameters.Modulus),
+                e = Base64UrlEncoder.Encode(parameters.Exponent)
+            }
         },
     };
 
@@ -124,7 +136,7 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
         Expiry = DateTime.UtcNow.AddMinutes(10)
     };
 
-    var returnUrl = $"{redirectUri}?code={code}&state={state}&iss={HttpUtility.UrlEncode("https://localhost:44350")}";
+    var returnUrl = $"{redirectUri}?code={code}&state={state}&iss={HttpUtility.UrlEncode("https://localhost:7248")}";
 
     return Results.Redirect($"/oauth/consent?returnUrl={HttpUtility.UrlEncode(returnUrl)}");
 
@@ -408,7 +420,7 @@ app.Run();
 static JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires, string audience)
 {
     var token = new JwtSecurityToken(
-        issuer: "https://localhost:44350",
+        issuer: "https://localhost:7248",
         audience: audience,
         expires: expires,
         claims: authClaims,
