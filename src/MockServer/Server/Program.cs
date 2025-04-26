@@ -1,3 +1,4 @@
+using CryptographyHelper.Certificates;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -441,7 +442,7 @@ static SecurityKey GetSigningKey()
 
 static X509Certificate2 GetX509Certificate()
 {
-    return X509CertificateLoader.LoadPkcs12FromFile("Certs/Practical.OpenIdConnect.pfx", "password1234", X509KeyStorageFlags.EphemeralKeySet);
+    return CertificateFile.Find("Certs/Practical.OpenIdConnect.pfx", "password1234", X509KeyStorageFlags.EphemeralKeySet);
 }
 
 class AuthorizeRequest
