@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using MockServer.Extensions;
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -36,8 +37,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-var authorizeRequests = new Dictionary<string, AuthorizeRequest>();
-var refreshTokens = new Dictionary<string, RefreshToken>();
+var authorizeRequests = new ConcurrentDictionary<string, AuthorizeRequest>();
+var refreshTokens = new ConcurrentDictionary<string, RefreshToken>();
 
 app.MapGet("/account/login", (HttpContext httpContext, [FromQuery] string returnUrl) =>
 {
@@ -171,15 +172,11 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             RedirectUri = request.Form["redirect_uri"],
         };
 
-        if (string.IsNullOrEmpty(tokenRequest.Code)
-            || !authorizeRequests.ContainsKey(tokenRequest.Code)
-            || string.IsNullOrEmpty(tokenRequest.CodeVerifier)
-            )
+        if (string.IsNullOrEmpty(tokenRequest.Code) || string.IsNullOrEmpty(tokenRequest.CodeVerifier)
+            || !authorizeRequests.TryGetValue(tokenRequest.Code, out var authRequest))
         {
             return Results.BadRequest();
         }
-
-        var authRequest = authorizeRequests[tokenRequest.Code];
 
         // verify code
         using var sha256 = SHA256.Create();
@@ -328,15 +325,13 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             clientSecret = request.Form["client_secret"];
         }
 
-        if (string.IsNullOrEmpty(refreshToken) || !refreshTokens.ContainsKey(refreshToken!))
+        if (string.IsNullOrEmpty(refreshToken) || !refreshTokens.TryGetValue(refreshToken!, out var refreshTokenRecord))
         {
             return Results.BadRequest(new
             {
                 error = "invalid_refresh_token"
             });
         }
-
-        var refreshTokenRecord = refreshTokens[refreshToken!];
 
         var authClaims = new List<Claim>
         {
@@ -362,7 +357,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
             CreatedDateTime = DateTimeOffset.Now
         };
 
-        refreshTokens.Remove(refreshToken!);
+        refreshTokens.TryRemove(refreshToken!, out _);
 
         var response = new
         {
