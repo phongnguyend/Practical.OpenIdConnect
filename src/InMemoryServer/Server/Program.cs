@@ -42,13 +42,14 @@ var refreshTokens = new ConcurrentDictionary<string, RefreshToken>();
 
 app.MapGet("/account/login", (HttpContext httpContext, [FromQuery] string returnUrl) =>
 {
-    return Results.Text(@$"
-    <form action=""/account/login?returnUrl={HttpUtility.UrlEncode(returnUrl)}"" method=""POST"">
-      <label for=""username"">Username:</label>
-      <input type=""text"" id=""username"" name=""username"" value=""phong@gmail.com""><br><br>
-      <input type=""submit"" value=""Login"">
+    var html = $"""
+    <form action="/account/login?returnUrl={HttpUtility.UrlEncode(returnUrl)}" method="POST">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" value="phong@gmail.com"><br><br>
+        <input type="submit" value="Login">
     </form>
-    ", "text/html");
+    """;
+    return Results.Text(html, "text/html");
 });
 
 app.MapPost("/account/login", async (HttpContext httpContext, [FromQuery] string returnUrl) =>
@@ -146,11 +147,12 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
 
 app.MapGet("/oauth/consent", (HttpContext httpContext, [FromQuery] string returnUrl) =>
 {
-    return Results.Text(@$"
-    <form action=""/oauth/consent?returnUrl={HttpUtility.UrlEncode(returnUrl)}"" method=""POST"">
-      <input type=""submit"" value=""Accept"">
+    var html = $"""
+    <form action="/oauth/consent?returnUrl={HttpUtility.UrlEncode(returnUrl)}" method="POST">
+        <input type="submit" value="Accept">
     </form>
-    ", "text/html");
+    """;
+    return Results.Text(html, "text/html");
 });
 
 app.MapPost("/oauth/consent", (HttpContext httpContext, [FromQuery] string returnUrl) =>
