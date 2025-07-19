@@ -72,17 +72,19 @@ app.MapPost("/account/login", async (HttpContext httpContext, [FromQuery] string
     return Results.Redirect(returnUrl);
 });
 
+var issuer = "https://localhost:7248";
+
 app.MapGet("/.well-known/openid-configuration", () =>
 {
     return Results.Ok(new
     {
-        issuer = "https://localhost:7248",
-        jwks_uri = "https://localhost:7248/.well-known/jwks",
-        authorization_endpoint = "https://localhost:7248/oauth/authorize",
-        token_endpoint = "https://localhost:7248/oauth/token",
+        issuer = $"{issuer}",
+        jwks_uri = $"{issuer}/.well-known/jwks",
+        authorization_endpoint = $"{issuer}/oauth/authorize",
+        token_endpoint = $"{issuer}/oauth/token",
         response_types_supported = new[] { "code", "token" },
         id_token_signing_alg_values_supported = new[] { "RS256" },
-        userinfo_endpoint = "https://localhost:7248/oauth/userinfo"
+        userinfo_endpoint = $"{issuer}/oauth/userinfo"
     });
 });
 
@@ -136,7 +138,7 @@ app.MapGet("/oauth/authorize", (HttpRequest request) =>
         Expiry = DateTime.UtcNow.AddMinutes(10)
     };
 
-    var returnUrl = $"{redirectUri}?code={code}&state={state}&iss={HttpUtility.UrlEncode("https://localhost:7248")}";
+    var returnUrl = $"{redirectUri}?code={code}&state={state}&iss={HttpUtility.UrlEncode(issuer)}";
 
     return Results.Redirect($"/oauth/consent?returnUrl={HttpUtility.UrlEncode(returnUrl)}");
 
@@ -200,8 +202,8 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
 
         var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), "WebAPI");
-        var idToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), authRequest.ClientId);
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), issuer, "WebAPI");
+        var idToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), issuer, authRequest.ClientId!);
 
         string? refreshToken = null;
         if (authRequest.Scope?.Split(' ')?.Contains("offline_access") ?? false)
@@ -251,7 +253,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
 
         var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), audience!);
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), issuer, audience!);
 
         var response = new
         {
@@ -287,7 +289,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
 
         var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), audience!);
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), issuer, audience!);
 
         string? refreshToken = null;
         if (scope?.Split(' ')?.Contains("offline_access") ?? false)
@@ -343,7 +345,7 @@ app.MapPost("/oauth/token", (HttpRequest request) =>
 
         var expiresIn = TimeSpan.FromMinutes(15).TotalSeconds;
 
-        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), refreshTokenRecord.Audience!);
+        var accessToken = CreateToken(authClaims, DateTime.Now.AddSeconds(expiresIn), issuer, refreshTokenRecord.Audience!);
 
         string? newRefreshToken = Guid.NewGuid().ToString();
 
@@ -411,10 +413,10 @@ app.MapGet("/internal/database", (HttpRequest request) =>
 
 app.Run();
 
-static JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires, string audience)
+static JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires, string issuer, string audience)
 {
     var token = new JwtSecurityToken(
-        issuer: "https://localhost:7248",
+        issuer: issuer,
         audience: audience,
         expires: expires,
         claims: authClaims,
