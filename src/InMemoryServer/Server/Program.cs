@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Web;
+using UriHelper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -80,12 +81,12 @@ app.MapGet("/.well-known/openid-configuration", () =>
     return Results.Ok(new
     {
         issuer = $"{issuer}",
-        jwks_uri = $"{issuer}/.well-known/jwks",
-        authorization_endpoint = $"{issuer}/oauth/authorize",
-        token_endpoint = $"{issuer}/oauth/token",
+        jwks_uri = UriPath.Combine(issuer, "/.well-known/jwks"),
+        authorization_endpoint = UriPath.Combine(issuer, "/oauth/authorize"),
+        token_endpoint = UriPath.Combine(issuer, "/oauth/token"),
         response_types_supported = new[] { "code", "token" },
         id_token_signing_alg_values_supported = new[] { "RS256" },
-        userinfo_endpoint = $"{issuer}/oauth/userinfo"
+        userinfo_endpoint = UriPath.Combine(issuer, "/oauth/userinfo")
     });
 });
 
